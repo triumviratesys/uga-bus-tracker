@@ -7,17 +7,6 @@ import 'leaflet/dist/leaflet.css';
 import type { EnrichedVehicle } from '@/lib/gtfs/types';
 import type { GTFSStop, GTFSRoute } from '@/lib/gtfs/types';
 
-// Fix for default marker icons in Leaflet
-const icon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
-
 interface MapComponentProps {
   vehicles: EnrichedVehicle[];
   stops: GTFSStop[];
@@ -54,6 +43,16 @@ export default function MapComponent({
   onRouteClick
 }: MapComponentProps) {
   const mapRef = useRef<L.Map | null>(null);
+
+  // Fix for Leaflet default icon in Next.js
+  useEffect(() => {
+    delete (L.Icon.Default.prototype as any)._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    });
+  }, []);
 
   // Create custom icons for buses based on route color
   const createBusIcon = (route: GTFSRoute | undefined, bearing?: number) => {
