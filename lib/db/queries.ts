@@ -3,6 +3,7 @@ import { db, Favorite, UserPreference, GTFSCache } from './schema';
 // Favorites CRUD operations
 export const favoriteQueries = {
   getAll(): Favorite[] {
+    if (!db) return [];
     const stmt = db.prepare('SELECT * FROM favorites ORDER BY created_at DESC');
     const rows = stmt.all() as any[];
     return rows.map(row => ({
@@ -12,6 +13,7 @@ export const favoriteQueries = {
   },
 
   getById(id: number): Favorite | undefined {
+    if (!db) return undefined;
     const stmt = db.prepare('SELECT * FROM favorites WHERE id = ?');
     const row = stmt.get(id) as any;
     if (!row) return undefined;
@@ -22,6 +24,7 @@ export const favoriteQueries = {
   },
 
   create(favorite: Omit<Favorite, 'id' | 'created_at' | 'updated_at'>): number {
+    if (!db) return -1;
     const stmt = db.prepare(`
       INSERT INTO favorites (name, from_stop_id, to_stop_id, preferred_routes, priority_mode)
       VALUES (?, ?, ?, ?, ?)
@@ -37,6 +40,7 @@ export const favoriteQueries = {
   },
 
   update(id: number, favorite: Partial<Favorite>): void {
+    if (!db) return;
     const updates: string[] = [];
     const params: any[] = [];
 
@@ -69,6 +73,7 @@ export const favoriteQueries = {
   },
 
   delete(id: number): void {
+    if (!db) return;
     const stmt = db.prepare('DELETE FROM favorites WHERE id = ?');
     stmt.run(id);
   }
@@ -77,12 +82,14 @@ export const favoriteQueries = {
 // User preferences operations
 export const preferenceQueries = {
   get(key: string): string | undefined {
+    if (!db) return undefined;
     const stmt = db.prepare('SELECT value FROM user_preferences WHERE key = ?');
     const row = stmt.get(key) as any;
     return row?.value;
   },
 
   set(key: string, value: string): void {
+    if (!db) return;
     const stmt = db.prepare(`
       INSERT INTO user_preferences (key, value)
       VALUES (?, ?)
@@ -92,6 +99,7 @@ export const preferenceQueries = {
   },
 
   delete(key: string): void {
+    if (!db) return;
     const stmt = db.prepare('DELETE FROM user_preferences WHERE key = ?');
     stmt.run(key);
   }
@@ -100,6 +108,7 @@ export const preferenceQueries = {
 // GTFS cache operations
 export const cacheQueries = {
   get(cacheKey: string): any | undefined {
+    if (!db) return undefined;
     const stmt = db.prepare(`
       SELECT data FROM gtfs_cache
       WHERE cache_key = ? AND expires_at > datetime('now')
@@ -110,6 +119,7 @@ export const cacheQueries = {
   },
 
   set(cacheKey: string, data: any, ttlSeconds: number): void {
+    if (!db) return;
     const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
     const stmt = db.prepare(`
       INSERT INTO gtfs_cache (cache_key, data, expires_at)
@@ -124,11 +134,13 @@ export const cacheQueries = {
   },
 
   delete(cacheKey: string): void {
+    if (!db) return;
     const stmt = db.prepare('DELETE FROM gtfs_cache WHERE cache_key = ?');
     stmt.run(cacheKey);
   },
 
   clearExpired(): void {
+    if (!db) return;
     const stmt = db.prepare(`DELETE FROM gtfs_cache WHERE expires_at <= datetime('now')`);
     stmt.run();
   }

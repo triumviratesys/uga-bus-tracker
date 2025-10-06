@@ -1,22 +1,40 @@
-import Database from 'better-sqlite3';
 import path from 'path';
 
-const dbPath = path.join(process.cwd(), 'data', 'uga-bus-tracker.db');
+// Check if we're in a serverless environment (Vercel, AWS Lambda, etc.)
+const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
 
-// Ensure data directory exists
-import fs from 'fs';
-const dataDir = path.dirname(dbPath);
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+let db: any = null;
+
+// Only initialize SQLite in non-serverless environments
+if (!isServerless) {
+  try {
+    const Database = require('better-sqlite3');
+    const dbPath = path.join(process.cwd(), 'data', 'uga-bus-tracker.db');
+
+    // Ensure data directory exists
+    const fs = require('fs');
+    const dataDir = path.dirname(dbPath);
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+
+    db = new Database(dbPath);
+    db.pragma('journal_mode = WAL');
+  } catch (error) {
+    console.warn('SQLite not available in this environment:', error);
+    db = null;
+  }
 }
 
-export const db = new Database(dbPath);
-
-// Enable WAL mode for better concurrent access
-db.pragma('journal_mode = WAL');
+export { db };
 
 // Initialize database schema
 export function initializeDatabase() {
+  if (!db) {
+    console.log('Database not available in serverless environment - using in-memory storage');
+    return;
+  }
+
   db.exec(`
     -- User favorites for specific routes between stops
     CREATE TABLE IF NOT EXISTS favorites (
